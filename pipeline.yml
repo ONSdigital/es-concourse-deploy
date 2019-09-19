@@ -3,7 +3,7 @@ resources:
   - name: GIT-repository
     type: git
     source:
-      uri: https://github.com/thomashenson/concourse-deploy-test
+      uri: https://github.com/ONSdigital/concourse-deploy
       branch: parallel
 
 jobs:
