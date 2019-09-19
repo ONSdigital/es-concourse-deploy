@@ -5,6 +5,7 @@ resources:
     source:
       uri: https://github.com/ONSdigital/concourse-deploy
       branch: parallel
+    webhook_token: ((webhook_token-concourse))
 
 jobs:
   - name: linting-and-tests
