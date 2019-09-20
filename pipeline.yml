@@ -4,7 +4,7 @@ resources:
     type: git
     source:
       uri: https://github.com/ONSdigital/concourse-deploy
-      branch: serverless
+      branch: ecr-test
 
   - name: Python-base
     type: docker-image
