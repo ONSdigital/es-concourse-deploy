@@ -3,6 +3,6 @@ def lambda_handler(event, context):
     print(world)
 
 
-def exampleMethod():
-    badExample = 0
-    return badExample
+def example_method():
+    bad_example = 0
+    return bad_example
