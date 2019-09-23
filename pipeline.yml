@@ -14,13 +14,6 @@ resources:
       repository: ONSdigital/es-concourse-deploy
       access_token: ((git_access_token))
 
-#  - name: GIT-repository
-#    type: git
-#    source:
-#      uri: https://github.com/ONSdigital/concourse-deploy
-#      branch: parallel
-#    webhook_token: temptest
-
 jobs:
   - name: linting-and-tests
     serial: true
@@ -75,6 +68,7 @@ jobs:
       - get: repository
         trigger: true
         passed: [linting-and-tests]
+
       - task: serverless-aws
         config:
           platform: linux
