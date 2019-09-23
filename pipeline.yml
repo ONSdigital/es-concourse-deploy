@@ -6,7 +6,7 @@ resource_types:
       repository: teliaoss/github-pr-resource
 
 resources:
-  - name: pull-request
+  - name: repository
     type: pull-request
     check_every: 24h
     webhook_token: ((webhook_token-concourse))
@@ -25,13 +25,16 @@ jobs:
   - name: linting-and-tests
     serial: true
     plan:
-      - get: pull-request
+
+      - get: repository
         trigger: true
         version: every
-      - put: pull-request
+
+      - put: repository
         params:
-          path: pull-request
+          path: repository
           status: pending
+
       - in_parallel:
         - task: aws-tests
           config:
@@ -41,14 +44,15 @@ jobs:
               source:
                 repository: ((docker-username))/docker-concourse
             inputs:
-              - name: pull-request
+              - name: repository
             run:
-              path: pull-request/aws-test.sh
+              path: repository/aws-test.sh
           on_failure:
-            put: pull-request
+            put: repository
             params:
-              path: pull-request
+              path: repository
               status: failure
+
         - task: flake8
           config:
             platform: linux
@@ -57,18 +61,18 @@ jobs:
               source:
                 repository: ((docker-username))/docker-concourse
             inputs:
-              - name: pull-request
+              - name: repository
             run:
-              path: pull-request/flake8.sh
+              path: repository/flake8.sh
           on_failure:
-            put: pull-request
+            put: repository
             params:
-              path: pull-request
+              path: repository
               status: failure
 
   - name: serverless-deploy
     plan:
-      - get: pull-request
+      - get: repository
         trigger: true
         passed: [linting-and-tests]
       - task: serverless-aws
@@ -83,6 +87,6 @@ jobs:
             AWS_SECRET_ACCESS_KEY: ((serverless-access-key.AWS_SECRET_ACCESS_KEY))
             SLS_DEBUG: 1
           inputs:
-            - name: pull-request
+            - name: repository
           run:
-            path: pull-request/serverless.sh
+            path: repository/serverless.sh

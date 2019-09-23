@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Should only trigger when requirements have changed
-pip install -r pull-request/dev-requirements.txt
+pip install -r repository/dev-requirements.txt
 
 # update 
 apt-get update
