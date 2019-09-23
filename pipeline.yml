@@ -4,7 +4,9 @@ resource_types:
     type: docker-image
     source:
       repository: teliaoss/github-pr-resource
-      
+
+THIS IS AN EXAMPLE OF A CHANGE
+
 jobs:
   - name: linting-and-tests
     serial: true
