@@ -1,18 +1,37 @@
 ---
-resources:
-  - name: GIT-repository
-    type: git
+resource_types:
+  - name: pull-request
+    type: docker-image
     source:
-      uri: https://github.com/ONSdigital/concourse-deploy
-      branch: parallel
+      repository: teliaoss/github-pr-resource
+
+resources:
+  - name: pull-request
+    type: pull-request
+    check_every: 24h
     webhook_token: ((webhook_token-concourse))
+    source:
+      repository: ONSdigital/es-concourse-deploy
+      access_token: ((git_access_token))
+
+#  - name: GIT-repository
+#    type: git
+#    source:
+#      uri: https://github.com/ONSdigital/concourse-deploy
+#      branch: parallel
+#    webhook_token: temptest
 
 jobs:
   - name: linting-and-tests
     serial: true
     plan:
-      - get: GIT-repository
+      - get: pull-request
         trigger: true
+        version: every
+      - put: pull-request
+        params:
+          path: pull-request
+          status: pending
       - in_parallel:
         - task: aws-tests
           config:
@@ -22,9 +41,14 @@ jobs:
               source:
                 repository: ((docker-username))/docker-concourse
             inputs:
-              - name: GIT-repository
+              - name: pull-request
             run:
-              path: GIT-repository/aws-test.sh
+              path: pull-request/aws-test.sh
+          on_failure:
+            put: pull-request
+            params:
+              path: pull-request
+              status: failure
         - task: flake8
           config:
             platform: linux
@@ -33,13 +57,18 @@ jobs:
               source:
                 repository: ((docker-username))/docker-concourse
             inputs:
-              - name: GIT-repository
+              - name: pull-request
             run:
-              path: GIT-repository/flake8.sh
+              path: pull-request/flake8.sh
+          on_failure:
+            put: pull-request
+            params:
+              path: pull-request
+              status: failure
 
   - name: serverless-deploy
     plan:
-      - get: GIT-repository
+      - get: pull-request
         trigger: true
         passed: [linting-and-tests]
       - task: serverless-aws
@@ -54,6 +83,6 @@ jobs:
             AWS_SECRET_ACCESS_KEY: ((serverless-access-key.AWS_SECRET_ACCESS_KEY))
             SLS_DEBUG: 1
           inputs:
-            - name: GIT-repository
+            - name: pull-request
           run:
-            path: GIT-repository/serverless.sh
+            path: pull-request/serverless.sh
