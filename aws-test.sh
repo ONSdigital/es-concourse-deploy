@@ -1,4 +1,4 @@
 #!/bin/bash
 
 # Run unit tests
-pytest GIT-repository
+pytest pull-request
