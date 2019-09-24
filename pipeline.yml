@@ -45,6 +45,7 @@ jobs:
             params:
               path: repository
               status: failure
+              comment: Failing tests are present
 
         - task: flake8
           config:
@@ -62,3 +63,4 @@ jobs:
             params:
               path: repository
               status: failure
+              comment: Code standards are not met
