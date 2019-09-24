@@ -62,25 +62,3 @@ jobs:
             params:
               path: repository
               status: failure
-
-  - name: serverless-deploy
-    plan:
-      - get: repository
-        trigger: true
-        passed: [linting-and-tests]
-
-      - task: serverless-aws
-        config:
-          platform: linux
-          image_resource:
-            type: docker-image
-            source:
-              repository: ((docker-username))/docker-concourse
-          params:
-            AWS_ACCESS_KEY_ID: ((serverless-access-key.AWS_ACCESS_KEY_ID))
-            AWS_SECRET_ACCESS_KEY: ((serverless-access-key.AWS_SECRET_ACCESS_KEY))
-            SLS_DEBUG: 1
-          inputs:
-            - name: repository
-          run:
-            path: repository/serverless.sh
