@@ -2,9 +2,11 @@
 resources:
   - name: repository
     type: git
+    check_every: 24h
+    icon: github-circle
     source:
       uri: https://github.com/ONSdigital/concourse-deploy
-      branch: deploy_pipeline
+      branch: lu_3662_pull_request
       webhook_token: ((webhook_token-concourse))
 
 jobs:
