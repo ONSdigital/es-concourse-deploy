@@ -4,10 +4,10 @@ resources:
     type: git
     check_every: 24h
     icon: github-circle
+    webhook_token: ((webhook_token-concourse))
     source:
       uri: https://github.com/ONSdigital/concourse-deploy
       branch: lu_3662_pull_request
-      webhook_token: ((webhook_token-concourse))
 
 jobs:
   - name: serverless-deploy
