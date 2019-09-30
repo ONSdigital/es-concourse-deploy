@@ -21,6 +21,7 @@ resources:
 #    source:
 #      repository: python
 #      tag: 3.7-slim
+#
 
   - name: ecr-image-upload
     type: docker-image
