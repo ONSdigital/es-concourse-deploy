@@ -7,7 +7,7 @@ resources:
     webhook_token: ((webhook_token-concourse))
     source:
       uri: https://github.com/ONSdigital/concourse-deploy
-      branch: lu_3662_pull_request
+      branch: master
 
 jobs:
   - name: serverless-deploy
