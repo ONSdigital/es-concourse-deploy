@@ -72,7 +72,7 @@ jobs:
       - put: repository
         params:
           path: repository
-          status: pending
+          status: success
 
       - in_parallel:
         - task: aws-tests
