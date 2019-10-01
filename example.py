@@ -1,3 +1,2 @@
-def Example_method():
+def example_method():
     return 0
-    
