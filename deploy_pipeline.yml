@@ -7,16 +7,14 @@ resources:
     webhook_token: ((webhook_token-concourse))
     source:
       uri: https://github.com/ONSdigital/concourse-deploy
-      branch: master
+      branch: dynamic_repo
 
 jobs:
-  - name: serverless-deploy
+  - name: pipeline-deploy
     plan:
       - get: repository
         trigger: true
-        version: every
-
-      - task: serverless-aws
+      - task: set-pipelines
         config:
           platform: linux
           image_resource:
@@ -25,11 +23,7 @@ jobs:
               repository: 014669633018.dkr.ecr.eu-west-2.amazonaws.com/results-cicd
               aws_access_key_id: ((ecr-svcaccount.api-key))
               aws_secret_access_key: ((ecr-svcaccount.api-secret))
-          params:
-            AWS_ACCESS_KEY_ID: ((serverless-access-key.AWS_ACCESS_KEY_ID))
-            AWS_SECRET_ACCESS_KEY: ((serverless-access-key.AWS_SECRET_ACCESS_KEY))
-            SLS_DEBUG: 1
           inputs:
             - name: repository
           run:
-            path: repository/serverless.sh
+            path: repository/set-pipeline.sh
