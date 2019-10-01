@@ -12,7 +12,7 @@ resources:
     webhook_token: ((webhook_token-concourse))
     icon: github-circle
     source:
-      repository: ONSdigital/es-concourse-deploy
+      repository: ONSdigital/((repo-name))
       access_token: ((git_access_token))
 
   - name: base-python-image
