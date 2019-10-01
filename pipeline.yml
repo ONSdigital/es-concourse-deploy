@@ -44,6 +44,8 @@ jobs:
       - get: repository
         trigger: true
 
+      - get: concourse-repository
+
       - get: base-python-image
         params:
           save: true
@@ -77,7 +79,6 @@ jobs:
         version: every
 
       - get: concourse-repository
-        passed: [installing dependencies]
         version: every
 
       - put: repository
