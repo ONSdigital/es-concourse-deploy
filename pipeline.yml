@@ -15,6 +15,12 @@ resources:
       repository: ONSdigital/((repo-name))
       access_token: ((git_access_token))
 
+  - name: concourse-repository
+    type: git
+    source:
+      uri: https://github.com/ONSdigital/es-concourse-deploy
+      branch: location_solution
+
   - name: base-python-image
     type: docker-image
     icon: language-python
@@ -58,14 +64,19 @@ jobs:
               aws_secret_access_key: ((ecr-svcaccount.api-secret))
           inputs:
             - name: repository
+            - name: concourse-repository
           run:
-            path: repository/install-dependencies.sh
+            path: concourse-repository/install-dependencies.sh
 
   - name: linting & tests
     plan:
 
       - get: repository
         trigger: true
+        passed: [installing dependencies]
+        version: every
+
+      - get: concourse-repository
         passed: [installing dependencies]
         version: every
 
@@ -87,7 +98,16 @@ jobs:
             inputs:
               - name: repository
             run:
-              path: repository/aws-test.sh
+              path: sh
+              args:
+                - -exc
+                - |
+                  whoami
+                  pwd
+                  env
+                  find .
+                  cd repository
+                  PYTHONPATH=$(pwd)/repository pytest
           on_failure:
             put: repository
             params:
@@ -106,8 +126,9 @@ jobs:
                 aws_secret_access_key: ((ecr-svcaccount.api-secret))
             inputs:
               - name: repository
+              - name: concourse-repository
             run:
-              path: repository/flake8.sh
+              path: concourse-repository/flake8.sh
           on_failure:
             put: repository
             params:
