@@ -1,4 +1,4 @@
-FROM 014669633018.dkr.ecr.eu-west-2.amazonaws.com/results-cicd:latest
+FROM python:3.7-slim
 
 COPY dev-requirements.txt /
 
