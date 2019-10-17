@@ -6,7 +6,19 @@ resource_types:
       repository: teliaoss/github-pr-resource
 
 resources:
-  - name: repository
+  - name: rebuild-repository
+    type: pull-request
+    check_every: 24h
+    webhook_token: ((webhook_token-concourse))
+    icon: github-circle
+    source:
+      paths:
+        - dev-requirements.txt
+      repository: ONSdigital/((repo-name))
+      access_token: ((git_access_token))
+
+
+  - name: pr-repository
     type: pull-request
     check_every: 24h
     webhook_token: ((webhook_token-concourse))
@@ -15,19 +27,18 @@ resources:
       repository: ONSdigital/((repo-name))
       access_token: ((git_access_token))
 
-  - name: concourse-repository
+  - name: code-repository
     type: git
     icon: github-circle
     source:
       uri: https://github.com/ONSdigital/es-concourse-deploy.git
-      branch: master
 
-#  - name: base-python-image
-#    type: docker-image
-#    icon: language-python
-#    source:
-#      repository: python
-#      tag: 3.7-slim
+  - name: base-python-image
+    type: docker-image
+    icon: language-python
+    source:
+      repository: python
+      tag: 3.7-slim
 
   - name: ecr-image-upload
     type: docker-image
@@ -38,26 +49,83 @@ resources:
       aws_secret_access_key: ((ecr-svcaccount.api-secret))
 
 jobs:
-  - name: installing dependencies
+  - name: rebuildonchange
     serial: true
+    serial_groups: [rebuild]
     plan:
-
-      - get: repository
+    - in_parallel:
+      - get: rebuild-repository
         trigger: true
+      - get: code-repository
 
-      - get: concourse-repository
+      - get: base-python-image
+        params:
+          cache: false
+          save: true
+    - put: ecr-image-upload
+      params:
+        save: true
+        load_base: base-python-image
+        build: code-repository
+        cache: true
+        cache_tag: latest
+      get_params:
+        skip_download: true
 
+  - name: linting & tests
+    serial_groups: [rebuild]
+    plan:
+    - in_parallel:
+      - get: pr-repository
+        trigger: true
+        version: every
       - get: ecr-image-upload
         params:
+          load: image
+          cache: true
           save: true
+    - put: pr-repository
+      params:
+        path: pr-repository
+        status: success
 
-      - put: ecr-image-upload
-        params:
-          load_base: ecr-image-upload
-          build: repository
 
-      - task: run
+    - in_parallel:
+      - task: aws-tests
         config:
+          caches: 
+          - path: image
+          platform: linux
+          image_resource:
+            type: docker-image
+            params:
+              cache: true
+              load: image
+            source:
+              repository: 014669633018.dkr.ecr.eu-west-2.amazonaws.com/results-cicd
+              aws_access_key_id: ((ecr-svcaccount.api-key))
+              aws_secret_access_key: ((ecr-svcaccount.api-secret))
+          inputs:
+            - name: pr-repository
+            - name: ecr-image-upload
+          run:
+            path: sh
+            args:
+              - -exc
+              - |
+                cd pr-repository
+                PYTHONPATH=$(pwd) pytest
+        on_failure:
+          put: pr-repository
+          params:
+            path: pr-repository
+            status: failure
+            description: Failing tests are present
+
+      - task: flake8
+        config:
+          caches: 
+          - path: image
           platform: linux
           image_resource:
             type: docker-image
@@ -66,71 +134,23 @@ jobs:
               aws_access_key_id: ((ecr-svcaccount.api-key))
               aws_secret_access_key: ((ecr-svcaccount.api-secret))
           inputs:
-            - name: repository
-            - name: concourse-repository
+            - name: pr-repository
           run:
-            path: concourse-repository/install-dependencies.sh
+            path: sh
+            args:
+              - -exc
+              - |
+                flake8 $(pwd)
+        on_failure:
+          put: pr-repository
+          params:
+            path: pr-repository
+            status: failure
+            description: Code standards are not met
+      on_failure:
+          put: pr-repository
+          params:
+            path: pr-repository
+            status: failure
+            description: Both linting and pytest have failed.
 
-  - name: linting & tests
-    plan:
-
-      - get: repository
-        trigger: true
-        passed: [installing dependencies]
-        version: every
-
-      - put: repository
-        params:
-          path: repository
-          status: success
-
-      - in_parallel:
-
-        - task: aws-tests
-          config:
-            platform: linux
-            image_resource:
-              type: docker-image
-              source:
-                repository: 014669633018.dkr.ecr.eu-west-2.amazonaws.com/results-cicd
-                aws_access_key_id: ((ecr-svcaccount.api-key))
-                aws_secret_access_key: ((ecr-svcaccount.api-secret))
-            inputs:
-              - name: repository
-            run:
-              path: sh
-              args:
-                - -exc
-                - |
-                  cd repository
-                  PYTHONPATH=$(pwd)/repository pytest
-          on_failure:
-            put: repository
-            params:
-              path: repository
-              status: failure
-              description: Failing tests are present
-
-        - task: flake8
-          config:
-            platform: linux
-            image_resource:
-              type: docker-image
-              source:
-                repository: 014669633018.dkr.ecr.eu-west-2.amazonaws.com/results-cicd
-                aws_access_key_id: ((ecr-svcaccount.api-key))
-                aws_secret_access_key: ((ecr-svcaccount.api-secret))
-            inputs:
-              - name: repository
-            run:
-              path: sh
-              args:
-                - -exc
-                - |
-                  flake8 $(pwd)/repository
-          on_failure:
-            put: repository
-            params:
-              path: repository
-              status: failure
-              description: Code standards are ynot met
